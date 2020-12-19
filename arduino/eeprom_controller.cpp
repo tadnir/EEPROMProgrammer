@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+#include "eeprom_controller.h"
+
 #define SHIFT_CLK 2
 #define SHIFT_LATCH 3 
 #define SHIFT_DATA 4

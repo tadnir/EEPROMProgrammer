@@ -95,7 +95,7 @@ class SerialServer(object):
             name = "known"
             if SerialServer.Signals.has_value(byte):
                 name = SerialServer.Signals(byte).name
-            raise UnexpectedSignalException("Expected {ex_name}{ex_val}, received {recv_name}{recv_val}.".format(
+            raise UnexpectedSignalException("Expected {ex_name}({ex_val}), received {recv_name}({recv_val}).".format(
                 ex_name=signal.name,
                 ex_val=signal.value,
                 recv_name=name,

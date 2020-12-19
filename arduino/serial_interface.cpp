@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+#include "serial_interface.h"
+
 SerialInterface::SerialInterface(int serial_rate, unsigned long timeout) {
   this->timeout = timeout;
   Serial.begin(serial_rate);
@@ -31,13 +33,10 @@ bool SerialInterface::WaitForBytes(size_t num_bytes, unsigned long timeout) {
 }
 
 void SerialInterface::ReadBuffer(byte* buffer, size_t size) {
+  this->WaitForBytes(size, this->timeout);
   byte data = 0;
   for (size_t i = 0; i < size; i++) {
-    data = Serial.read();
-    if (c < 0) {
-      break;
-    }
-    
+    data = Serial.read();   
     buffer[i] = data;
   }
 }
