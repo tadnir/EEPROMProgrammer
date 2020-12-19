@@ -104,6 +104,10 @@ class EEPROMProgrammer(object):
 
     @contextlib.contextmanager
     def _connect_to_server(self) -> SerialServer:
+        if self._server.is_connected:
+            yield self._server
+            return
+
         with self._server.connect():
             yield self._server
 
@@ -115,6 +119,10 @@ class EEPROMProgrammer(object):
         with self._connect_to_server() as server:
             self._max_address = server.call(MaxAddressRPC())
             return self._max_address
+
+    @property
+    def memory_size(self) -> int:
+        return self.max_address + 1
 
     def echo(self, msg: bytes) -> bytes:
         with self._connect_to_server() as server:
@@ -131,7 +139,7 @@ class EEPROMProgrammer(object):
             return server.call(ReadRPC(address))
 
     def read_buffer(self, address: int, length: int):
-        if address + length > self.max_address:
+        if address + length - 1 > self.max_address:
             raise ValueError("Exceeded maximum EEPROM memory address({}), given: address({})+length({}).".format(
                 self.max_address,
                 address,
@@ -152,7 +160,7 @@ class EEPROMProgrammer(object):
             return server.call(WriteRPC(address, data))
 
     def write_buffer(self, address: int, buffer: bytes):
-        if address + len(buffer) > self.max_address:
+        if address + len(buffer) - 1 > self.max_address:
             raise ValueError("Exceeded maximum EEPROM memory address({}), given: address({})+length({}).".format(
                 self.max_address,
                 address,
