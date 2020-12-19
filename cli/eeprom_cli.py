@@ -5,16 +5,27 @@ import eeprom_programmer
 
 
 class EEPROMCLI(object):
-    def __init__(self, port, baudrate=9600, timeout=2, write_timeout=0, debug=False):
+    def __init__(self, port: str, baudrate: int=9600, timeout: int=2, write_timeout: int=0, debug: bool=False):
         super(EEPROMCLI, self).__init__()
         self.programmer = eeprom_programmer.EEPROMProgrammer(port, baudrate, timeout, write_timeout, debug)
         self._debug = debug
 
-    def _progress_bar(self, iterator):
+    def _progress_bar(self, iterator, total: int=None, step: int=1):
         if self._debug:
             return iterator
         else:
-            return tqdm.tqdm(iterator)
+            return tqdm.tqdm(iterator, total=total/step, unit_scale=step, unit="Bytes")
+
+    @staticmethod
+    def _bytes_range(start, end, size):
+        current = start
+        while current + size < end:
+            yield current, size
+            current += size
+
+        remainder = end - current
+        if remainder > 0:
+            yield current, remainder
 
     def echo(self, msg: str):
         return str(self.programmer.echo(bytes(msg, encoding="ASCII")), encoding="ASCII")
@@ -23,25 +34,18 @@ class EEPROMCLI(object):
         value = self.programmer.read(address)
         return "{:#04x}".format(value) if as_hex else value
 
-    def write(self, address: int, *data: list):
-        # self.programmer.write(address, data)
-        pass
+    def write(self, address: int, *data: int):
+        self.programmer.write_buffer(address, bytes(data))
 
     def print(self, start=0x0000, length=0x00ff):
         eeprom_data = []
-        remaining_end = (start + length) % 16
-        end = start + length - remaining_end
         with self.programmer.connect():
-            for i in self._progress_bar(range(start, end, 16)):
-                eeprom_data.extend([b for b in self.programmer.read_buffer(i, 16)])
+            for offset, size in self._progress_bar(self._bytes_range(start, start + length, 16)):
+                eeprom_data.extend([b for b in self.programmer.read_buffer(offset, size)])
 
-            for i in range(remaining_end + 1):
-                eeprom_data.append(self.programmer.read(end + i))
-
-        for i in range(0, length, 16):
-            bytes_in_line = min(length - i + 1, 16)
+        for i, size in self._bytes_range(start, start + length, 16):
             print("{:#06x}".format(start + i), end=": ")
-            for j in range(bytes_in_line):
+            for j in range(size):
                 print("{:#04x}".format(eeprom_data[i + j]), end=" ")
 
             print("")
